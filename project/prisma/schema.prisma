@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  classes     Class[]
+  attendances Attendance[]
+  signatures  Signature[]
+
+  @@map("teachers")
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  section   String
+  grade     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  students  Student[]
+  attendances Attendance[]
+
+  @@unique([name, section, grade])
+  @@map("classes")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  studentId   String   @unique // School student ID
+  firstName   String
+  lastName    String
+  grade       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classId     String
+  class       Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+
+  @@map("students")
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  date      DateTime
+  timeSlot  String   // "morning" or "afternoon"
+  hour      Int      // 1-4 for morning (8:30-12:30), 1-4 for afternoon (2:30-6:30)
+  status    String   // "present", "absent", "late"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId, date, timeSlot, hour])
+  @@map("attendances")
+}
+
+model Signature {
+  id        String   @id @default(cuid())
+  date      DateTime
+  classId   String
+  signature String   // Encrypted signature
+  createdAt DateTime @default(now())
+
+  // Relations
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId, date])
+  @@map("signatures")
+}
